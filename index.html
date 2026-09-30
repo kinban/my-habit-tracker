@@ -3,366 +3,293 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Daily Habit Tracker (Cloud Sync)</title>
+    <title>Habit Tracker - Daily Progress & Sync</title>
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Google Font Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
         body {
             font-family: 'Inter', sans-serif;
             -webkit-tap-highlight-color: transparent;
         }
-        .tab-btn.active {
-            color: #2563eb;
-            border-bottom: 2px solid #2563eb;
+        .tab-active {
+            color: #4f46e5;
+            border-bottom: 2px solid #4f46e5;
             font-weight: 600;
         }
-        .custom-checkbox {
-            width: 24px;
-            height: 24px;
-            cursor: pointer;
-            transition: all 0.2s ease;
+        .habit-card {
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .habit-card:hover {
+            transform: translateY(-1px);
+        }
+        /* Custom scrollbar for calendar if needed */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 3px;
         }
     </style>
 </head>
 <body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col items-center">
 
-    <!-- Main Container -->
-    <div class="w-full max-w-md min-h-screen flex flex-col bg-white shadow-lg">
+    <!-- App Container -->
+    <div class="w-full max-w-lg min-h-screen flex flex-col bg-white shadow-xl border-x border-slate-100">
         
-        <header class="p-4 border-b border-slate-100 flex justify-between items-center bg-white sticky top-0 z-10">
+        <!-- Header -->
+        <header class="p-4 border-b border-slate-100 flex justify-between items-center bg-white sticky top-0 z-20">
             <div>
-                <h1 class="text-xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
-                    <i class="fa-solid fa-square-check text-blue-600"></i> Daily Habits
+                <h1 class="text-xl font-extrabold text-slate-900 tracking-tight flex items-center gap-2">
+                    <i class="fa-solid fa-square-check text-indigo-600"></i> HabitTracker
                 </h1>
-                <p class="text-xs text-slate-500" id="sync-status"><i class="fa-solid fa-cloud text-slate-400 mr-1"></i> Checking auth...</p>
+                <div class="flex items-center gap-2 mt-0.5">
+                    <span id="syncBadge" class="inline-flex items-center gap-1 text-[11px] font-medium text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">
+                        <i class="fa-solid fa-hard-drive"></i> Local Storage
+                    </span>
+                </div>
             </div>
             
-            <!-- Auth User Button / Avatar -->
-            <div class="flex items-center gap-2">
-                <div id="user-info" class="hidden flex items-center gap-2 text-xs text-slate-600 bg-slate-100 py-1.5 px-3 rounded-full">
-                    <span id="user-name" class="font-medium truncate max-w-[100px]">User</span>
-                    <button id="logout-btn" title="Sign Out" class="text-slate-400 hover:text-rose-600 transition">
+            <!-- Auth / User Controls -->
+            <div id="authContainer">
+                <button id="googleSignInBtn" class="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold py-2 px-3.5 rounded-xl transition shadow-sm flex items-center gap-2">
+                    <i class="fa-brands fa-google"></i> Sign In
+                </button>
+                <div id="userInfo" class="hidden flex items-center gap-2">
+                    <img id="userAvatar" src="https://placehold.co/32x32/6366f1/ffffff?text=U" alt="User Avatar" class="w-8 h-8 rounded-full border border-indigo-200 object-cover">
+                    <div class="text-left hidden sm:block">
+                        <p id="userName" class="text-xs font-bold text-slate-800 truncate max-w-[90px]">User</p>
+                        <p class="text-[10px] text-slate-400">Synced</p>
+                    </div>
+                    <button id="signOutBtn" title="Sign Out" class="p-2 text-slate-400 hover:text-rose-600 transition text-sm">
                         <i class="fa-solid fa-right-from-bracket"></i>
                     </button>
                 </div>
-                <button id="login-modal-btn" class="bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold py-1.5 px-3 rounded-full transition shadow-xs flex items-center gap-1">
-                    <i class="fa-solid fa-user"></i> Sync Account
-                </button>
             </div>
         </header>
 
-        <nav class="flex border-b border-slate-100 bg-slate-50">
-            <button id="tab-checklist" class="tab-btn active flex-1 py-3 text-center text-sm text-slate-600 transition flex items-center justify-center gap-2">
+        <!-- View Navigation Tabs -->
+        <nav class="flex border-b border-slate-100 bg-slate-50/80 sticky top-[65px] z-10 backdrop-blur-md">
+            <button id="tabChecklist" class="tab-active flex-1 py-3 text-center text-sm transition flex items-center justify-center gap-2">
                 <i class="fa-solid fa-list-check"></i> Checklist
             </button>
-            <button id="tab-calendar" class="tab-btn flex-1 py-3 text-center text-sm text-slate-600 transition flex items-center justify-center gap-2">
-                <i class="fa-regular fa-calendar-days"></i> Calendar
+            <button id="tabCalendar" class="text-slate-500 hover:text-slate-800 flex-1 py-3 text-center text-sm transition flex items-center justify-center gap-2">
+                <i class="fa-regular fa-calendar-days"></i> Calendar View
             </button>
         </nav>
 
-        <main class="flex-1 p-5 flex flex-col">
+        <!-- Toast / Message Notification Banner -->
+        <div id="toastMessage" class="hidden mx-4 mt-3 p-3 rounded-xl text-xs font-medium bg-slate-800 text-white flex items-center justify-between shadow-md">
+            <span id="toastText">Notification message</span>
+            <button id="toastClose" class="text-slate-400 hover:text-white ml-2"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+
+        <!-- Main Content View -->
+        <main class="flex-1 p-4 sm:p-5 flex flex-col space-y-6">
             
-            <!-- CHECKLIST VIEW -->
-            <section id="view-checklist" class="space-y-6 flex-1 flex flex-col">
+            <!-- 1. CHECKLIST VIEW -->
+            <section id="viewChecklist" class="space-y-5 flex-1 flex flex-col">
                 
                 <!-- Date Bar Navigation -->
-                <div class="flex items-center justify-between bg-slate-100 p-3 rounded-2xl">
-                    <button id="prev-day-btn" class="p-2 hover:bg-white rounded-xl text-slate-600 transition">
+                <div class="flex items-center justify-between bg-slate-100/80 p-2.5 rounded-2xl border border-slate-200/60">
+                    <button id="prevDayBtn" class="p-2 hover:bg-white rounded-xl text-slate-600 transition shadow-xs" title="Previous Day">
                         <i class="fa-solid fa-chevron-left"></i>
                     </button>
                     <div class="text-center">
-                        <div id="current-date-display" class="font-semibold text-slate-800 text-sm">Today</div>
-                        <button id="go-today-btn" class="text-xs text-blue-600 font-medium hover:underline hidden">Jump to Today</button>
+                        <div id="dateDisplayMain" class="font-bold text-slate-800 text-sm">Today</div>
+                        <div id="dateDisplaySub" class="text-[11px] text-slate-500 font-medium">Loading date...</div>
                     </div>
-                    <button id="next-day-btn" class="p-2 hover:bg-white rounded-xl text-slate-600 transition">
-                        <i class="fa-solid fa-chevron-right"></i>
-                    </button>
+                    <div class="flex items-center gap-1">
+                        <button id="todayBtn" class="hidden text-xs bg-indigo-50 text-indigo-600 font-semibold px-2.5 py-1 rounded-lg hover:bg-indigo-100 transition mr-1">
+                            Today
+                        </button>
+                        <button id="nextDayBtn" class="p-2 hover:bg-white rounded-xl text-slate-600 transition shadow-xs" title="Next Day">
+                            <i class="fa-solid fa-chevron-right"></i>
+                        </button>
+                    </div>
                 </div>
 
-                <!-- Daily Score Indicator Banner -->
-                <div id="score-banner" class="p-4 rounded-2xl flex items-center justify-between border transition-all duration-300">
+                <!-- Daily Score & Completion Progress Badge Banner -->
+                <div id="scoreBanner" class="p-4 rounded-2xl flex items-center justify-between border bg-slate-50 border-slate-200 transition-all duration-300">
                     <div>
-                        <div class="text-xs uppercase font-bold tracking-wider opacity-80" id="status-label">Status</div>
-                        <div class="text-lg font-extrabold" id="status-title">---</div>
+                        <div class="text-[10px] uppercase font-bold tracking-wider text-slate-500">Daily Status</div>
+                        <div class="text-base font-extrabold text-slate-800" id="statusTitle">0 / 6 Completed</div>
+                        <p id="statusSubtitle" class="text-xs text-slate-500 mt-0.5">Start checking off your habits!</p>
                     </div>
                     <div class="text-right">
-                        <span id="score-count" class="text-2xl font-black">0/6</span>
-                        <div class="text-xs opacity-75">completed</div>
+                        <span id="scoreBadge" class="inline-block px-3 py-1.5 rounded-xl text-sm font-black bg-slate-200 text-slate-700">
+                            0%
+                        </span>
                     </div>
                 </div>
 
-                <div class="space-y-3 flex-1">
-                    
-                    <!-- 1) Sleep -->
-                    <label class="habit-item flex items-center justify-between p-4 bg-slate-50 hover:bg-slate-100/80 rounded-2xl cursor-pointer border border-slate-100 transition">
-                        <div class="flex items-center gap-3">
-                            <div class="w-10 h-10 rounded-xl bg-indigo-100 text-indigo-600 flex items-center justify-center text-lg">
-                                <i class="fa-solid fa-moon"></i>
-                            </div>
-                            <div>
-                                <span class="font-semibold text-slate-800 block text-sm">Sleep</span>
-                                <span class="text-xs text-slate-400">7-8+ hours quality sleep</span>
-                            </div>
-                        </div>
-                        <input type="checkbox" data-habit="sleep" class="custom-checkbox accent-blue-600 rounded">
-                    </label>
-
-                    <!-- 2) Exercise -->
-                    <label class="habit-item flex items-center justify-between p-4 bg-slate-50 hover:bg-slate-100/80 rounded-2xl cursor-pointer border border-slate-100 transition">
-                        <div class="flex items-center gap-3">
-                            <div class="w-10 h-10 rounded-xl bg-orange-100 text-orange-600 flex items-center justify-center text-lg">
-                                <i class="fa-solid fa-dumbbell"></i>
-                            </div>
-                            <div>
-                                <span class="font-semibold text-slate-800 block text-sm">Exercise</span>
-                                <span class="text-xs text-slate-400">Workout, run or stretch</span>
-                            </div>
-                        </div>
-                        <input type="checkbox" data-habit="exercise" class="custom-checkbox accent-blue-600 rounded">
-                    </label>
-
-                    <!-- 3) Food -->
-                    <label class="habit-item flex items-center justify-between p-4 bg-slate-50 hover:bg-slate-100/80 rounded-2xl cursor-pointer border border-slate-100 transition">
-                        <div class="flex items-center gap-3">
-                            <div class="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center text-lg">
-                                <i class="fa-solid fa-apple-whole"></i>
-                            </div>
-                            <div>
-                                <span class="font-semibold text-slate-800 block text-sm">Food</span>
-                                <span class="text-xs text-slate-400">Healthy meals & nutrition</span>
-                            </div>
-                        </div>
-                        <input type="checkbox" data-habit="food" class="custom-checkbox accent-blue-600 rounded">
-                    </label>
-
-                    <!-- 4) Sunlight -->
-                    <label class="habit-item flex items-center justify-between p-4 bg-slate-50 hover:bg-slate-100/80 rounded-2xl cursor-pointer border border-slate-100 transition">
-                        <div class="flex items-center gap-3">
-                            <div class="w-10 h-10 rounded-xl bg-amber-100 text-amber-600 flex items-center justify-center text-lg">
-                                <i class="fa-solid fa-sun"></i>
-                            </div>
-                            <div>
-                                <span class="font-semibold text-slate-800 block text-sm">Sunlight</span>
-                                <span class="text-xs text-slate-400">15+ mins outdoors</span>
-                            </div>
-                        </div>
-                        <input type="checkbox" data-habit="sunlight" class="custom-checkbox accent-blue-600 rounded">
-                    </label>
-
-                    <!-- 5) Bad Habits -->
-                    <label class="habit-item flex items-center justify-between p-4 bg-slate-50 hover:bg-slate-100/80 rounded-2xl cursor-pointer border border-slate-100 transition">
-                        <div class="flex items-center gap-3">
-                            <div class="w-10 h-10 rounded-xl bg-rose-100 text-rose-600 flex items-center justify-center text-lg">
-                                <i class="fa-solid fa-ban"></i>
-                            </div>
-                            <div>
-                                <span class="font-semibold text-slate-800 block text-sm">Bad Habits</span>
-                                <span class="text-xs text-slate-400">Avoided bad habits today</span>
-                            </div>
-                        </div>
-                        <input type="checkbox" data-habit="bad_habits" class="custom-checkbox accent-blue-600 rounded">
-                    </label>
-
-                    <!-- 6) Steps -->
-                    <label class="habit-item flex items-center justify-between p-4 bg-slate-50 hover:bg-slate-100/80 rounded-2xl cursor-pointer border border-slate-100 transition">
-                        <div class="flex items-center gap-3">
-                            <div class="w-10 h-10 rounded-xl bg-teal-100 text-teal-600 flex items-center justify-center text-lg">
-                                <i class="fa-solid fa-shoe-prints"></i>
-                            </div>
-                            <div>
-                                <span class="font-semibold text-slate-800 block text-sm">Steps</span>
-                                <span class="text-xs text-slate-400">Reached step target</span>
-                            </div>
-                        </div>
-                        <input type="checkbox" data-habit="steps" class="custom-checkbox accent-blue-600 rounded">
-                    </label>
-
+                <!-- Habit List Items -->
+                <div id="habitList" class="space-y-3 flex-1">
+                    <!-- Dynamically populated checklist items -->
                 </div>
             </section>
 
-            <!-- CALENDAR VIEW -->
-            <section id="view-calendar" class="hidden space-y-5 flex-1 flex flex-col">
+            <!-- 2. CALENDAR VIEW -->
+            <section id="viewCalendar" class="hidden space-y-5 flex-1 flex flex-col">
                 
-                <!-- Month Selection Controls -->
-                <div class="flex items-center justify-between bg-slate-100 p-3 rounded-2xl">
-                    <button id="prev-month-btn" class="p-2 hover:bg-white rounded-xl text-slate-600 transition">
+                <!-- Month Controls -->
+                <div class="flex items-center justify-between bg-slate-100/80 p-2.5 rounded-2xl border border-slate-200/60">
+                    <button id="prevMonthBtn" class="p-2 hover:bg-white rounded-xl text-slate-600 transition shadow-xs">
                         <i class="fa-solid fa-chevron-left"></i>
                     </button>
-                    <div id="calendar-month-year" class="font-bold text-slate-800 text-base">
+                    <div id="calendarMonthLabel" class="font-bold text-slate-800 text-base">
                         Month Year
                     </div>
-                    <button id="next-month-btn" class="p-2 hover:bg-white rounded-xl text-slate-600 transition">
+                    <button id="nextMonthBtn" class="p-2 hover:bg-white rounded-xl text-slate-600 transition shadow-xs">
                         <i class="fa-solid fa-chevron-right"></i>
                     </button>
                 </div>
 
-                <!-- Legend -->
-                <div class="flex justify-around bg-slate-50 p-3 rounded-xl text-xs text-slate-600 border border-slate-100">
+                <!-- Color Legend -->
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 bg-slate-50 p-3 rounded-2xl border border-slate-100 text-xs font-medium text-slate-600">
                     <div class="flex items-center gap-1.5">
-                        <span class="w-3 h-3 rounded-full bg-emerald-500"></span> 6/6 (Green)
+                        <span class="w-3 h-3 rounded-md bg-emerald-500 inline-block shadow-xs"></span>
+                        <span>6/6 (Green)</span>
                     </div>
                     <div class="flex items-center gap-1.5">
-                        <span class="w-3 h-3 rounded-full bg-amber-400"></span> 4-5 (Amber)
+                        <span class="w-3 h-3 rounded-md bg-amber-400 inline-block shadow-xs"></span>
+                        <span>4-5 (Amber)</span>
                     </div>
                     <div class="flex items-center gap-1.5">
-                        <span class="w-3 h-3 rounded-full bg-rose-500"></span> &le;2 (Red)
+                        <span class="w-3 h-3 rounded-md bg-rose-500 inline-block shadow-xs"></span>
+                        <span>1-3 (Red)</span>
+                    </div>
+                    <div class="flex items-center gap-1.5">
+                        <span class="w-3 h-3 rounded-md bg-slate-200 inline-block"></span>
+                        <span>0 Checked</span>
                     </div>
                 </div>
 
-                <!-- Days of Week Header -->
-                <div class="grid grid-cols-7 gap-1 text-center text-xs font-semibold text-slate-400 py-1">
-                    <div>Su</div><div>Mo</div><div>Tu</div><div>We</div><div>Th</div><div>Fr</div><div>Sa</div>
+                <!-- Weekdays Header -->
+                <div class="grid grid-cols-7 gap-1 text-center text-xs font-bold text-slate-400 uppercase tracking-wider py-1">
+                    <div>Sun</div><div>Mon</div><div>Tue</div><div>Wed</div><div>Thu</div><div>Fri</div><div>Sat</div>
                 </div>
 
                 <!-- Calendar Days Grid -->
-                <div id="calendar-grid" class="grid grid-cols-7 gap-2"></div>
+                <div id="calendarGrid" class="grid grid-cols-7 gap-1.5"></div>
             </section>
 
         </main>
 
-        <footer class="p-4 border-t border-slate-100 text-center text-xs text-slate-400">
-            Realtime Cloud Sync Enabled &bull; Safe & Secure
+        <footer class="p-4 border-t border-slate-100 text-center text-xs text-slate-400 bg-white">
+            Daily Habit Tracker &bull; Powered by Firebase & Local Storage
         </footer>
-
     </div>
 
-    <!-- Authentication Modal -->
-    <div id="auth-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4 hidden">
-        <div class="bg-white rounded-3xl p-6 w-full max-w-sm shadow-2xl space-y-5">
-            <div class="text-center space-y-1">
-                <h3 class="text-lg font-bold text-slate-900">Sign in to Sync</h3>
-                <p class="text-xs text-slate-500">Log in to keep your habits synced seamlessly across all your devices.</p>
-            </div>
-
-            <!-- Email / Pass Form -->
-            <form id="auth-form" class="space-y-3">
-                <div>
-                    <label class="block text-xs font-semibold text-slate-600 mb-1">Email Address</label>
-                    <input type="email" id="auth-email" required placeholder="you@example.com" class="w-full px-3 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500">
-                </div>
-                <div>
-                    <label class="block text-xs font-semibold text-slate-600 mb-1">Password</label>
-                    <input type="password" id="auth-password" required placeholder="••••••••" class="w-full px-3 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500">
-                </div>
-                
-                <div class="flex gap-2 pt-1">
-                    <button type="button" id="email-login-btn" class="flex-1 bg-blue-600 text-white font-semibold py-2 rounded-xl text-xs hover:bg-blue-700 transition">Log In</button>
-                    <button type="button" id="email-signup-btn" class="flex-1 bg-slate-100 text-slate-700 font-semibold py-2 rounded-xl text-xs hover:bg-slate-200 transition">Sign Up</button>
-                </div>
-            </form>
-
-            <div class="relative flex py-1 items-center">
-                <div class="flex-grow border-t border-slate-200"></div>
-                <span class="flex-shrink mx-3 text-[10px] text-slate-400 font-bold uppercase tracking-wider">Or</span>
-                <div class="flex-grow border-t border-slate-200"></div>
-            </div>
-
-            <!-- Google Login -->
-            <button id="google-login-btn" class="w-full py-2.5 px-4 border border-slate-200 rounded-xl text-xs font-medium text-slate-700 flex items-center justify-center gap-2 hover:bg-slate-50 transition">
-                <i class="fa-brands fa-google text-red-500 text-sm"></i> Continue with Google
-            </button>
-
-            <button id="close-modal-btn" class="w-full text-xs text-slate-400 hover:text-slate-600 font-medium text-center block pt-1">Cancel</button>
-        </div>
-    </div>
-
-    <!-- Firebase SDK Modules -->
+    <!-- Modular Firebase Script -->
     <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { 
             getAuth, 
-            signInWithCustomToken, 
-            signInAnonymously, 
-            onAuthStateChanged,
-            signInWithEmailAndPassword,
-            createUserWithEmailAndPassword,
-            GoogleAuthProvider,
-            signInWithPopup,
-            signOut 
-        } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+            signInWithPopup, 
+            GoogleAuthProvider, 
+            signOut, 
+            onAuthStateChanged 
+        } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
         import { 
             getFirestore, 
             doc, 
             setDoc, 
             collection, 
             onSnapshot 
-        } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-        /*
-         * FIREBASE CONFIGURATION
-         * Replace the fallback object below with your actual Firebase project settings if running standalone.
-         */
-        // Import the functions you need from the SDKs you need
-import { initializeApp } from "firebase/app";
-// TODO: Add SDKs for Firebase products that you want to use
-// https://firebase.google.com/docs/web/setup#available-libraries
+        // Exact provided Firebase Configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyBZJsoRojWEjPEO4YRkfJ67cN3weaRORzI",
+            authDomain: "habit-tracker-bed53.firebaseapp.com",
+            projectId: "habit-tracker-bed53",
+            storageBucket: "habit-tracker-bed53.firebasestorage.app",
+            messagingSenderId: "811628622424",
+            appId: "1:811628622424:web:b28f9536068803786b502d"
+        };
 
-// Your web app's Firebase configuration
+        // Initialize Firebase Services safely
+        let app, auth, db, provider;
+        try {
+            app = initializeApp(firebaseConfig);
+            auth = getAuth(app);
+            db = getFirestore(app);
+            provider = new GoogleAuthProvider();
+        } catch (e) {
+            console.error("Firebase init error:", e);
+        }
 
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
-        
-   const firebaseConfig = {
-  apiKey: "AIzaSyBZJsoRojWEjPEO4YRkfJ67cN3weaRORzI",
-  authDomain: "habit-tracker-bed53.firebaseapp.com",
-  projectId: "habit-tracker-bed53",
-  storageBucket: "habit-tracker-bed53.firebasestorage.app",
-  messagingSenderId: "811628622424",
-  appId: "1:811628622424:web:b28f9536068803786b502d"
-};
-            };
+        // Habit definitions
+        const HABITS = [
+            { id: "sleep", label: "Sleep", desc: "7-8+ hours quality rest", icon: "fa-moon", color: "text-indigo-600", bg: "bg-indigo-50", border: "border-indigo-100" },
+            { id: "exercise", label: "Exercise", desc: "Workout, run or active sport", icon: "fa-dumbbell", color: "text-orange-600", bg: "bg-orange-50", border: "border-orange-100" },
+            { id: "food", label: "Food", desc: "Healthy balanced nutrition", icon: "fa-apple-whole", color: "text-emerald-600", bg: "bg-emerald-50", border: "border-emerald-100" },
+            { id: "sunlight", label: "Sunlight", desc: "15+ mins natural daylight", icon: "fa-sun", color: "text-amber-600", bg: "bg-amber-50", border: "border-amber-100" },
+            { id: "bad_habits", label: "Bad Habits Avoided", desc: "Stayed disciplined today", icon: "fa-shield-halved", color: "text-rose-600", bg: "bg-rose-50", border: "border-rose-100" },
+            { id: "steps", label: "Steps Target", desc: "Hit daily walking goal", icon: "fa-person-walking", color: "text-teal-600", bg: "bg-teal-50", border: "border-teal-100" }
+        ];
 
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'habit-tracker-app';
-
-        // Initialize Firebase Services
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-        const db = getFirestore(app);
-
-        // App State
-        const HABITS = ['sleep', 'exercise', 'food', 'sunlight', 'bad_habits', 'steps'];
+        // State variables
         let currentUser = null;
-        let selectedDate = getTodayFormatted();
-        let calendarYear = new Date().getFullYear();
-        let calendarMonth = new Date().getMonth();
-        let userHabitsMemory = {}; // In-memory cache of habit records by date
+        let selectedDate = new Date();
+        let currentCalendarMonth = new Date().getMonth();
+        let currentCalendarYear = new Date().getFullYear();
+        let habitDataStore = {}; // Local memory store { 'YYYY-MM-DD': { habitId: true/false } }
+        let unsubscribeFirestore = null;
 
-        // DOM Elements
-        const syncStatus = document.getElementById('sync-status');
-        const userInfo = document.getElementById('user-info');
-        const userName = document.getElementById('user-name');
-        const logoutBtn = document.getElementById('logout-btn');
-        const loginModalBtn = document.getElementById('login-modal-btn');
-        const authModal = document.getElementById('auth-modal');
-        const closeModalBtn = document.getElementById('close-modal-btn');
+        // UI DOM Elements
+        const syncBadge = document.getElementById("syncBadge");
+        const googleSignInBtn = document.getElementById("googleSignInBtn");
+        const userInfo = document.getElementById("userInfo");
+        const userAvatar = document.getElementById("userAvatar");
+        const userName = document.getElementById("userName");
+        const signOutBtn = document.getElementById("signOutBtn");
 
-        const emailLoginBtn = document.getElementById('email-login-btn');
-        const emailSignupBtn = document.getElementById('email-signup-btn');
-        const googleLoginBtn = document.getElementById('google-login-btn');
-        const authEmail = document.getElementById('auth-email');
-        const authPassword = document.getElementById('auth-password');
+        const tabChecklist = document.getElementById("tabChecklist");
+        const tabCalendar = document.getElementById("tabCalendar");
+        const viewChecklist = document.getElementById("viewChecklist");
+        const viewCalendar = document.getElementById("viewCalendar");
 
-        const viewChecklist = document.getElementById('view-checklist');
-        const viewCalendar = document.getElementById('view-calendar');
-        const tabChecklist = document.getElementById('tab-checklist');
-        const tabCalendar = document.getElementById('tab-calendar');
-        
-        const currentDateDisplay = document.getElementById('current-date-display');
-        const goTodayBtn = document.getElementById('go-today-btn');
-        const prevDayBtn = document.getElementById('prev-day-btn');
-        const nextDayBtn = document.getElementById('next-day-btn');
+        const dateDisplayMain = document.getElementById("dateDisplayMain");
+        const dateDisplaySub = document.getElementById("dateDisplaySub");
+        const prevDayBtn = document.getElementById("prevDayBtn");
+        const nextDayBtn = document.getElementById("nextDayBtn");
+        const todayBtn = document.getElementById("todayBtn");
 
-        const scoreBanner = document.getElementById('score-banner');
-        const statusTitle = document.getElementById('status-title');
-        const scoreCount = document.getElementById('score-count');
+        const scoreBanner = document.getElementById("scoreBanner");
+        const statusTitle = document.getElementById("statusTitle");
+        const statusSubtitle = document.getElementById("statusSubtitle");
+        const scoreBadge = document.getElementById("scoreBadge");
+        const habitList = document.getElementById("habitList");
 
-        const prevMonthBtn = document.getElementById('prev-month-btn');
-        const nextMonthBtn = document.getElementById('next-month-btn');
-        const calendarMonthYear = document.getElementById('calendar-month-year');
-        const calendarGrid = document.getElementById('calendar-grid');
+        const calendarMonthLabel = document.getElementById("calendarMonthLabel");
+        const prevMonthBtn = document.getElementById("prevMonthBtn");
+        const nextMonthBtn = document.getElementById("nextMonthBtn");
+        const calendarGrid = document.getElementById("calendarGrid");
 
-        // Helper Functions
+        const toastMessage = document.getElementById("toastMessage");
+        const toastText = document.getElementById("toastText");
+        const toastClose = document.getElementById("toastClose");
+
+        function showToast(msg, duration = 3000) {
+            toastText.textContent = msg;
+            toastToastMessage.classList.remove("hidden");
+            setTimeout(() => {
+                toastMessage.classList.add("hidden");
+            }, duration);
+        }
+        const toastToastMessage = toastMessage;
+        toastClose.addEventListener("click", () => toastMessage.classList.add("hidden"));
+
         function formatDateKey(dateObj) {
             const y = dateObj.getFullYear();
             const m = String(dateObj.getMonth() + 1).padStart(2, '0');
@@ -370,278 +297,331 @@ const app = initializeApp(firebaseConfig);
             return `${y}-${m}-${d}`;
         }
 
-        function getTodayFormatted() {
-            return formatDateKey(new Date());
+        function isToday(dateObj) {
+            return formatDateKey(dateObj) === formatDateKey(new Date());
         }
 
-        // 1. Initial Authentication Logic
-        async function setupAuth() {
+        // Load local storage cache
+        function loadLocalStorage() {
             try {
-                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                    await signInWithCustomToken(auth, __initial_auth_token);
-                } else if (!auth.currentUser) {
-                    await signInAnonymously(auth);
+                const stored = localStorage.getItem("habitTrackerData");
+                if (stored) {
+                    habitDataStore = JSON.parse(stored);
                 }
-            } catch (err) {
-                console.warn("Auth initialization fallback:", err);
-                if (!auth.currentUser) await signInAnonymously(auth);
+            } catch (e) {
+                console.error("Local storage load error:", e);
+                habitDataStore = {};
             }
         }
 
-        // Auth state watcher
-        onAuthStateChanged(auth, (user) => {
-            currentUser = user;
-            if (user) {
-                if (user.isAnonymous) {
-                    syncStatus.innerHTML = `<i class="fa-solid fa-cloud text-amber-500 mr-1"></i> Guest Mode`;
-                    userInfo.classList.add('hidden');
-                    loginModalBtn.classList.remove('hidden');
-                } else {
-                    syncStatus.innerHTML = `<i class="fa-solid fa-cloud-arrow-up text-emerald-500 mr-1"></i> Synced to Cloud`;
-                    userName.textContent = user.email || 'User';
-                    userInfo.classList.remove('hidden');
-                    loginModalBtn.classList.add('hidden');
-                }
-                attachRealtimeListener(user.uid);
-            }
-        });
-
-        // 2. Real-time Firestore Sync
-        let unsubscribeRealtime = null;
-
-        function attachRealtimeListener(uid) {
-            if (unsubscribeRealtime) unsubscribeRealtime();
-
-            // Store in user-specific path: /artifacts/{appId}/users/{userId}/records
-            const habitsColRef = collection(db, 'artifacts', appId, 'users', uid, 'records');
-
-            unsubscribeRealtime = onSnapshot(habitsColRef, (snapshot) => {
-                userHabitsMemory = {};
-                snapshot.forEach((doc) => {
-                    userHabitsMemory[doc.id] = doc.data();
-                });
-                renderChecklist();
-                renderCalendar();
-            }, (error) => {
-                console.error("Firestore sync error:", error);
-            });
-        }
-
-        // Save habit update to Firestore
-        async function saveHabitState(dateKey, habitKey, isChecked) {
-            if (!currentUser) return;
-
-            // Optimistic UI update
-            if (!userHabitsMemory[dateKey]) userHabitsMemory[dateKey] = {};
-            userHabitsMemory[dateKey][habitKey] = isChecked;
-            renderChecklist();
-
+        // Save local storage cache
+        function saveLocalStorage() {
             try {
-                const docRef = doc(db, 'artifacts', appId, 'users', currentUser.uid, 'records', dateKey);
-                await setDoc(docRef, userHabitsMemory[dateKey], { merge: true });
-            } catch (err) {
-                console.error("Failed to save habit:", err);
+                localStorage.setItem("habitTrackerData", JSON.stringify(habitDataStore));
+            } catch (e) {
+                console.error("Local storage save error:", e);
             }
         }
 
-        // UI Render Checklist
         function renderChecklist() {
-            const todayStr = getTodayFormatted();
-            const [y, m, d] = selectedDate.split('-').map(Number);
-            const dateObj = new Date(y, m - 1, d);
-            const options = { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' };
-            const prettyDate = dateObj.toLocaleDateString(undefined, options);
+            const dateKey = formatDateKey(selectedDate);
+            const dayHabits = habitDataStore[dateKey] || {};
 
-            currentDateDisplay.textContent = (selectedDate === todayStr) ? `Today (${prettyDate})` : prettyDate;
-            goTodayBtn.classList.toggle('hidden', selectedDate === todayStr);
+            // Render Date Titles
+            if (isToday(selectedDate)) {
+                dateDisplayMain.textContent = "Today";
+                todayBtn.classList.add("hidden");
+            } else {
+                dateDisplayMain.textContent = selectedDate.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
+                todayBtn.classList.remove("hidden");
+            }
 
-            const savedData = userHabitsMemory[selectedDate] || {};
+            dateDisplaySub.textContent = selectedDate.toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' });
+
+            // Render Habit List
+            habitList.innerHTML = "";
             let completedCount = 0;
 
-            document.querySelectorAll('input[data-habit]').forEach(input => {
-                const habitKey = input.getAttribute('data-habit');
-                const isChecked = !!savedData[habitKey];
-                input.checked = isChecked;
+            HABITS.forEach(habit => {
+                const isChecked = !!dayHabits[habit.id];
                 if (isChecked) completedCount++;
+
+                const habitCard = document.createElement("label");
+                habitCard.className = `habit-card flex items-center justify-between p-3.5 sm:p-4 rounded-2xl border cursor-pointer transition select-none ${
+                    isChecked 
+                        ? "bg-indigo-50/70 border-indigo-200 text-indigo-950 shadow-2xs" 
+                        : "bg-slate-50 border-slate-200/80 hover:bg-slate-100/80 text-slate-800"
+                }`;
+
+                habitCard.innerHTML = `
+                    <div class="flex items-center gap-3 sm:gap-4">
+                        <div class="w-10 h-10 rounded-xl ${habit.bg} ${habit.color} border ${habit.border} flex items-center justify-center text-lg flex-shrink-0 shadow-2xs">
+                            <i class="fa-solid ${habit.icon}"></i>
+                        </div>
+                        <div>
+                            <span class="font-bold text-sm block leading-snug">${habit.label}</span>
+                            <span class="text-xs text-slate-400 block">${habit.desc}</span>
+                        </div>
+                    </div>
+                    <div class="flex items-center">
+                        <input type="checkbox" data-id="${habit.id}" class="w-5 h-5 rounded-md text-indigo-600 focus:ring-indigo-500 accent-indigo-600 cursor-pointer" ${isChecked ? "checked" : ""}>
+                    </div>
+                `;
+
+                const checkbox = habitCard.querySelector("input[type='checkbox']");
+                checkbox.addEventListener("change", (e) => {
+                    toggleHabit(dateKey, habit.id, e.target.checked);
+                });
+
+                habitList.appendChild(habitCard);
             });
 
-            scoreCount.textContent = `${completedCount}/6`;
+            // Update Score Banner & Badge
+            const percentage = Math.round((completedCount / HABITS.length) * 100);
+            statusTitle.textContent = `${completedCount} of ${HABITS.length} Completed`;
 
-            // Updated color logic requested:
-            // Green: All 6 checked | Amber: 4 or 5 checked | Red: 2 or fewer checked
             if (completedCount === 6) {
-                scoreBanner.className = "p-4 rounded-2xl flex items-center justify-between bg-emerald-50 text-emerald-800 border-emerald-200 transition-all";
-                statusTitle.textContent = "Perfect! (6/6)";
+                scoreBanner.className = "p-4 rounded-2xl flex items-center justify-between border bg-emerald-50 border-emerald-200 text-emerald-900 transition-all duration-300";
+                statusSubtitle.textContent = "Perfect score! Outstanding achievement!";
+                scoreBadge.className = "px-3.5 py-1.5 rounded-xl text-sm font-black bg-emerald-500 text-white shadow-xs";
+                scoreBadge.textContent = "100%";
             } else if (completedCount >= 4) {
-                scoreBanner.className = "p-4 rounded-2xl flex items-center justify-between bg-amber-50 text-amber-800 border-amber-200 transition-all";
-                statusTitle.textContent = "Good Progress";
+                scoreBanner.className = "p-4 rounded-2xl flex items-center justify-between border bg-amber-50 border-amber-200 text-amber-900 transition-all duration-300";
+                statusSubtitle.textContent = "Great progress! Keep going!";
+                scoreBadge.className = "px-3.5 py-1.5 rounded-xl text-sm font-black bg-amber-400 text-slate-900 shadow-xs";
+                scoreBadge.textContent = `${percentage}%`;
+            } else if (completedCount >= 1) {
+                scoreBanner.className = "p-4 rounded-2xl flex items-center justify-between border bg-rose-50 border-rose-200 text-rose-900 transition-all duration-300";
+                statusSubtitle.textContent = "Good start! Aim for 4+ habits today.";
+                scoreBadge.className = "px-3.5 py-1.5 rounded-xl text-sm font-black bg-rose-500 text-white shadow-xs";
+                scoreBadge.textContent = `${percentage}%`;
             } else {
-                scoreBanner.className = "p-4 rounded-2xl flex items-center justify-between bg-rose-50 text-rose-800 border-rose-200 transition-all";
-                statusTitle.textContent = "Needs Focus";
+                scoreBanner.className = "p-4 rounded-2xl flex items-center justify-between border bg-slate-50 border-slate-200 text-slate-800 transition-all duration-300";
+                statusSubtitle.textContent = "No habits checked off yet today.";
+                scoreBadge.className = "px-3.5 py-1.5 rounded-xl text-sm font-black bg-slate-200 text-slate-700";
+                scoreBadge.textContent = "0%";
             }
+
+            renderCalendar();
         }
 
-        // UI Render Calendar
         function renderCalendar() {
-            calendarGrid.innerHTML = '';
-            
+            calendarGrid.innerHTML = "";
+
             const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
-            calendarMonthYear.textContent = `${monthNames[calendarMonth]} ${calendarYear}`;
+            calendarMonthLabel.textContent = `${monthNames[currentCalendarMonth]} ${currentCalendarYear}`;
 
-            const firstDay = new Date(calendarYear, calendarMonth, 1).getDay();
-            const daysInMonth = new Date(calendarYear, calendarMonth + 1, 0).getDate();
-            const todayStr = getTodayFormatted();
+            const firstDayIndex = new Date(currentCalendarYear, currentCalendarMonth, 1).getDay();
+            const totalDays = new Date(currentCalendarYear, currentCalendarMonth + 1, 0).getDate();
+            const todayKey = formatDateKey(new Date());
 
-            for (let i = 0; i < firstDay; i++) {
-                const emptyCell = document.createElement('div');
-                emptyCell.className = "h-12 border border-transparent";
+            // Empty slots for alignment
+            for (let i = 0; i < firstDayIndex; i++) {
+                const emptyCell = document.createElement("div");
+                emptyCell.className = "h-11 sm:h-12";
                 calendarGrid.appendChild(emptyCell);
             }
 
-            for (let day = 1; day <= daysInMonth; day++) {
-                const dayDateObj = new Date(calendarYear, calendarMonth, day);
-                const dayKey = formatDateKey(dayDateObj);
+            // Days cells
+            for (let day = 1; day <= totalDays; day++) {
+                const cellDate = new Date(currentCalendarYear, currentCalendarMonth, day);
+                const dayKey = formatDateKey(cellDate);
+                const dayHabits = habitDataStore[dayKey] || {};
+
+                let completedCount = 0;
+                HABITS.forEach(h => {
+                    if (dayHabits[h.id] === true) completedCount++;
+                });
+
+                const cell = document.createElement("button");
                 
-                const cell = document.createElement('button');
-                cell.className = "h-12 rounded-xl flex flex-col items-center justify-center font-medium text-xs relative transition hover:scale-105 border";
-
-                const dayData = userHabitsMemory[dayKey] || {};
-                let count = 0;
-                HABITS.forEach(h => { if (dayData[h] === true) count++; });
-
-                const hasData = Object.keys(dayData).length > 0;
-
-                // Color Rules:
-                // Green: 6 checked | Amber: 4-5 checked | Red: 2 or fewer checked
-                if (!hasData) {
-                    cell.classList.add('bg-slate-100', 'text-slate-500', 'border-slate-200');
-                } else if (count === 6) {
-                    cell.classList.add('bg-emerald-500', 'text-white', 'border-emerald-600');
-                } else if (count >= 4) {
-                    cell.classList.add('bg-amber-400', 'text-slate-900', 'border-amber-500');
-                } else {
-                    cell.classList.add('bg-rose-500', 'text-white', 'border-rose-600');
+                /*
+                 * Calendar Color Coding Rules:
+                 * - Emerald Green: All 6 checked
+                 * - Amber Yellow: 4 or 5 checked
+                 * - Rose Red: 1 to 3 checked
+                 * - Default gray: 0 checked / unlogged.
+                 */
+                let colorClasses = "bg-slate-100 text-slate-600 hover:bg-slate-200 border-slate-200";
+                
+                if (completedCount === 6) {
+                    colorClasses = "bg-emerald-500 text-white font-bold border-emerald-600 shadow-xs";
+                } else if (completedCount === 4 || completedCount === 5) {
+                    colorClasses = "bg-amber-400 text-slate-950 font-bold border-amber-500 shadow-xs";
+                } else if (completedCount >= 1 && completedCount <= 3) {
+                    colorClasses = "bg-rose-500 text-white font-bold border-rose-600 shadow-xs";
                 }
 
-                if (dayKey === todayStr) {
-                    cell.classList.add('ring-2', 'ring-blue-600', 'ring-offset-1');
-                }
+                const isSelected = (dayKey === formatDateKey(selectedDate));
+                const selectionRing = isSelected ? "ring-2 ring-indigo-600 ring-offset-2" : "";
+                const isCurrentDay = (dayKey === todayKey);
 
+                cell.className = `h-11 sm:h-12 rounded-xl border flex flex-col items-center justify-center relative transition duration-150 ${colorClasses} ${selectionRing}`;
+                
                 cell.innerHTML = `
-                    <span class="text-sm font-bold">${day}</span>
-                    <span class="text-[10px] opacity-85">${hasData ? `${count}/6` : '-'}</span>
+                    <span class="text-xs sm:text-sm font-bold ${isCurrentDay && completedCount === 0 ? 'underline decoration-indigo-600 decoration-2 font-extrabold' : ''}">${day}</span>
+                    <span class="text-[9px] opacity-80 font-semibold">${completedCount > 0 ? `${completedCount}/6` : ''}</span>
                 `;
 
-                cell.addEventListener('click', () => {
-                    selectedDate = dayKey;
-                    switchTab('checklist');
+                cell.addEventListener("click", () => {
+                    selectedDate = cellDate;
+                    switchTab("checklist");
                 });
 
                 calendarGrid.appendChild(cell);
             }
         }
 
-        // View Switching
-        function switchTab(tabName) {
-            if (tabName === 'checklist') {
-                tabChecklist.classList.add('active');
-                tabCalendar.classList.remove('active');
-                viewChecklist.classList.remove('hidden');
-                viewCalendar.classList.add('hidden');
+        async function toggleHabit(dateKey, habitId, isChecked) {
+            if (!habitDataStore[dateKey]) {
+                habitDataStore[dateKey] = {};
+            }
+            habitDataStore[dateKey][habitId] = isChecked;
+
+            saveLocalStorage();
+            renderChecklist();
+
+            // Sync to Firestore if authenticated
+            if (currentUser && db) {
+                try {
+                    const docRef = doc(db, "users", currentUser.uid, "habits", dateKey);
+                    await setDoc(docRef, habitDataStore[dateKey], { merge: true });
+                } catch (err) {
+                    console.error("Firestore update error:", err);
+                    showToast("Failed to sync to cloud. Local state saved.");
+                }
+            }
+        }
+
+        function setupRealtimeSync(uid) {
+            if (unsubscribeFirestore) unsubscribeFirestore();
+            if (!db) return;
+
+            try {
+                const habitsColRef = collection(db, "users", uid, "habits");
+                unsubscribeFirestore = onSnapshot(habitsColRef, (snapshot) => {
+                    snapshot.forEach((docSnap) => {
+                        habitDataStore[docSnap.id] = docSnap.data();
+                    });
+                    saveLocalStorage();
+                    renderChecklist();
+                }, (error) => {
+                    console.error("Firestore snapshot error:", error);
+                });
+            } catch (err) {
+                console.error("Realtime sync attach error:", err);
+            }
+        }
+
+        function switchTab(targetTab) {
+            if (targetTab === "checklist") {
+                tabChecklist.className = "tab-active flex-1 py-3 text-center text-sm transition flex items-center justify-center gap-2";
+                tabCalendar.className = "text-slate-500 hover:text-slate-800 flex-1 py-3 text-center text-sm transition flex items-center justify-center gap-2";
+                viewChecklist.classList.remove("hidden");
+                viewCalendar.classList.add("hidden");
                 renderChecklist();
             } else {
-                tabCalendar.classList.add('active');
-                tabChecklist.classList.remove('active');
-                viewCalendar.classList.remove('hidden');
-                viewChecklist.classList.add('hidden');
+                tabCalendar.className = "tab-active flex-1 py-3 text-center text-sm transition flex items-center justify-center gap-2";
+                tabChecklist.className = "text-slate-500 hover:text-slate-800 flex-1 py-3 text-center text-sm transition flex items-center justify-center gap-2";
+                viewCalendar.classList.remove("hidden");
+                viewChecklist.classList.add("hidden");
                 renderCalendar();
             }
         }
 
-        // Checkbox events
-        document.querySelectorAll('input[data-habit]').forEach(input => {
-            input.addEventListener('change', (e) => {
-                const habitKey = e.target.getAttribute('data-habit');
-                saveHabitState(selectedDate, habitKey, e.target.checked);
-            });
-        });
+        tabChecklist.addEventListener("click", () => switchTab("checklist"));
+        tabCalendar.addEventListener("click", () => switchTab("calendar"));
 
-        // Tab events
-        tabChecklist.addEventListener('click', () => switchTab('checklist'));
-        tabCalendar.addEventListener('click', () => switchTab('calendar'));
-
-        // Date navigation
-        prevDayBtn.addEventListener('click', () => {
-            const [y, m, d] = selectedDate.split('-').map(Number);
-            selectedDate = formatDateKey(new Date(y, m - 1, d - 1));
+        // Date Controls
+        prevDayBtn.addEventListener("click", () => {
+            selectedDate.setDate(selectedDate.getDate() - 1);
             renderChecklist();
         });
 
-        nextDayBtn.addEventListener('click', () => {
-            const [y, m, d] = selectedDate.split('-').map(Number);
-            selectedDate = formatDateKey(new Date(y, m - 1, d + 1));
+        nextDayBtn.addEventListener("click", () => {
+            selectedDate.setDate(selectedDate.getDate() + 1);
             renderChecklist();
         });
 
-        goTodayBtn.addEventListener('click', () => {
-            selectedDate = getTodayFormatted();
+        todayBtn.addEventListener("click", () => {
+            selectedDate = new Date();
             renderChecklist();
         });
 
-        prevMonthBtn.addEventListener('click', () => {
-            calendarMonth--;
-            if (calendarMonth < 0) { calendarMonth = 11; calendarYear--; }
+        prevMonthBtn.addEventListener("click", () => {
+            currentCalendarMonth--;
+            if (currentCalendarMonth < 0) {
+                currentCalendarMonth = 11;
+                currentCalendarYear--;
+            }
             renderCalendar();
         });
 
-        nextMonthBtn.addEventListener('click', () => {
-            calendarMonth++;
-            if (calendarMonth > 11) { calendarMonth = 0; calendarYear++; }
+        nextMonthBtn.addEventListener("click", () => {
+            currentCalendarMonth++;
+            if (currentCalendarMonth > 11) {
+                currentCalendarMonth = 0;
+                currentCalendarYear++;
+            }
             renderCalendar();
         });
 
-        // Auth Modal Handlers
-        loginModalBtn.addEventListener('click', () => authModal.classList.remove('hidden'));
-        closeModalBtn.addEventListener('click', () => authModal.classList.add('hidden'));
-
-        emailLoginBtn.addEventListener('click', async () => {
-            try {
-                await signInWithEmailAndPassword(auth, authEmail.value, authPassword.value);
-                authModal.classList.add('hidden');
-            } catch (err) {
-                alert("Login Error: " + err.message);
+        googleSignInBtn.addEventListener("click", async () => {
+            if (!auth || !provider) {
+                showToast("Firebase Auth unavailable.");
+                return;
             }
-        });
-
-        emailSignupBtn.addEventListener('click', async () => {
             try {
-                await createUserWithEmailAndPassword(auth, authEmail.value, authPassword.value);
-                authModal.classList.add('hidden');
-            } catch (err) {
-                alert("Signup Error: " + err.message);
-            }
-        });
-
-        googleLoginBtn.addEventListener('click', async () => {
-            try {
-                const provider = new GoogleAuthProvider();
                 await signInWithPopup(auth, provider);
-                authModal.classList.add('hidden');
+                showToast("Signed in successfully!");
             } catch (err) {
-                alert("Google Sign-in Error: " + err.message);
+                console.error("Sign in error:", err);
+                showToast("Sign in popup cancelled or blocked.");
             }
         });
 
-        logoutBtn.addEventListener('click', async () => {
-            await signOut(auth);
-            await signInAnonymously(auth);
+        signOutBtn.addEventListener("click", async () => {
+            if (!auth) return;
+            try {
+                await signOut(auth);
+                showToast("Signed out. Using local storage.");
+            } catch (err) {
+                console.error("Sign out error:", err);
+            }
         });
 
-        // Start App
-        window.onload = () => {
-            setupAuth();
-            renderChecklist();
-        };
+        // Firebase Auth State Listener
+        if (auth) {
+            onAuthStateChanged(auth, (user) => {
+                currentUser = user;
+                if (user) {
+                    googleSignInBtn.classList.add("hidden");
+                    userInfo.classList.remove("hidden");
+                    userName.textContent = user.displayName || "User";
+                    if (user.photoURL) {
+                        userAvatar.src = user.photoURL;
+                    }
+                    syncBadge.className = "inline-flex items-center gap-1 text-[11px] font-medium text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200";
+                    syncBadge.innerHTML = `<i class="fa-solid fa-cloud-check"></i> Cloud Synced`;
+
+                    setupRealtimeSync(user.uid);
+                } else {
+                    googleSignInBtn.classList.remove("hidden");
+                    userInfo.classList.add("hidden");
+                    syncBadge.className = "inline-flex items-center gap-1 text-[11px] font-medium text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200";
+                    syncBadge.innerHTML = `<i class="fa-solid fa-hard-drive"></i> Local Storage`;
+
+                    if (unsubscribeFirestore) {
+                        unsubscribeFirestore();
+                        unsubscribeFirestore = null;
+                    }
+                }
+            });
+        }
+
+        // Initialize App
+        loadLocalStorage();
+        renderChecklist();
     </script>
 </body>
 </html>
