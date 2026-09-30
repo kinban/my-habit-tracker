@@ -293,15 +293,14 @@
          * FIREBASE CONFIGURATION
          * Replace the fallback object below with your actual Firebase project settings if running standalone.
          */
-        const firebaseConfig = typeof __firebase_config !== 'undefined' 
-            ? JSON.parse(__firebase_config) 
-            : {
-                apiKey: "YOUR_API_KEY",
-                authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
-                projectId: "YOUR_PROJECT_ID",
-                storageBucket: "YOUR_PROJECT_ID.appspot.com",
-                messagingSenderId: "123456789",
-                appId: "1:123456789:web:abcdef"
+   const firebaseConfig = {
+  apiKey: "AIzaSyBZJsoRojWEjPEO4YRkfJ67cN3weaRORzI",
+  authDomain: "habit-tracker-bed53.firebaseapp.com",
+  projectId: "habit-tracker-bed53",
+  storageBucket: "habit-tracker-bed53.firebasestorage.app",
+  messagingSenderId: "811628622424",
+  appId: "1:811628622424:web:b28f9536068803786b502d"
+};
             };
 
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'habit-tracker-app';
